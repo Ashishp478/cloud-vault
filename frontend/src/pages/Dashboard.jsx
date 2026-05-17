@@ -35,21 +35,18 @@ const Dashboard = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Custom directories state
-  const [currentFolderId, setCurrentFolderId] = useState(null); // null represents root
-  const [folderPath, setFolderPath] = useState([]); // Array of { _id, name } for breadcrumbs
+  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [folderPath, setFolderPath] = useState([]);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingFolder, setCreatingFolder] = useState(false);
 
-  // Search & Navigation views
-  const [activeFolder, setActiveFolder] = useState('all'); // all, trash, favorites, shared, Documents...
+  const [activeFolder, setActiveFolder] = useState('all');
   const [search, setSearch] = useState('');
   const [aiSearchActive, setAiSearchActive] = useState(false);
-  const [selectedTag, setSelectedTag] = useState('All'); // All, Work, College, Personal
-  const [sortBy, setSortBy] = useState('newest'); // newest, oldest, name, size
+  const [selectedTag, setSelectedTag] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
   
-  // Modals Toggles
   const [showUpload, setShowUpload] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -65,21 +62,17 @@ const Dashboard = () => {
       let filesPromise;
       let foldersPromise = Promise.resolve({ data: [] });
 
-      // Fetch files based on view state
       if (activeFolder === 'trash') {
         filesPromise = fetchTrash();
       } else if (['all', 'favorites', 'shared'].includes(activeFolder)) {
-        // Fetch files inside current custom folder, filtering by tag
         const tagFilter = selectedTag === 'All' ? undefined : selectedTag;
         filesPromise = fetchFiles(currentFolderId || 'null', tagFilter);
         
-        // Also fetch custom subfolders if in 'all' view
         if (activeFolder === 'all') {
           foldersPromise = fetchFolders(currentFolderId || 'null');
         }
       } else {
-        // Category views (Documents, Images, etc)
-        filesPromise = fetchFiles('all'); // Fetch all active to filter on client, or fetch by tag
+        filesPromise = fetchFiles('all');
       }
 
       const [filesRes, foldersRes, statsRes, actRes] = await Promise.all([
@@ -113,7 +106,6 @@ const Dashboard = () => {
   useEffect(() => {
     clearTimeout(searchTimer.current);
     if (!search.trim()) { 
-      // Avoid clearing active files on empty search
       if (search === '') return;
       loadAll(); 
       return; 
@@ -123,11 +115,9 @@ const Dashboard = () => {
       setLoading(true);
       try {
         if (aiSearchActive) {
-          // Gemini AI natural language search
           const { data } = await fetchAISearch(search);
           setFiles(data);
         } else {
-          // Standard regex name search
           const folder = ['all', 'favorites', 'shared', 'trash'].includes(activeFolder) ? undefined : activeFolder;
           const { data } = await searchFiles(search, folder);
           setFiles(data);
@@ -137,7 +127,7 @@ const Dashboard = () => {
       } finally {
         setLoading(false);
       }
-    }, 450); // slightly longer debounce for AI computations
+    }, 450);
 
     return () => clearTimeout(searchTimer.current);
   }, [search, activeFolder, aiSearchActive, loadAll]);
@@ -146,12 +136,11 @@ const Dashboard = () => {
   const handleFolderDoubleClick = (folder) => {
     setFolderPath((prev) => [...prev, { _id: folder._id, name: folder.name }]);
     setCurrentFolderId(folder._id);
-    setSelectedTag('All'); // Reset tag pill on folder change
+    setSelectedTag('All');
   };
 
   const handleBreadcrumbClick = (folderIndex) => {
     if (folderIndex === -1) {
-      // Navigate to Root Drive
       setFolderPath([]);
       setCurrentFolderId(null);
     } else {
@@ -173,7 +162,7 @@ const Dashboard = () => {
       addToast(`Folder "${newFolderName}" created!`, 'success');
       setNewFolderName('');
       setShowFolderModal(false);
-      loadAll(); // Reload custom folders grid
+      loadAll();
     } catch (err) {
       addToast(err.response?.data?.message || 'Folder creation failed', 'error');
     } finally {
@@ -183,7 +172,7 @@ const Dashboard = () => {
 
   // ── Folder deletion ───────────────────────────────────
   const handleDeleteFolder = async (e, folderId, folderName) => {
-    e.stopPropagation(); // Stop navigation trigger
+    e.stopPropagation();
     if (!window.confirm(`Are you sure you want to delete "${folderName}"? All files nested inside this directory will be moved to the Recycle Bin.`)) {
       return;
     }
@@ -200,21 +189,18 @@ const Dashboard = () => {
   const getProcessedFiles = () => {
     let result = [...files];
 
-    // Client-side filtering when viewing static folders/categories
     if (!['all', 'trash'].includes(activeFolder)) {
       result = result.filter((f) => {
         if (activeFolder === 'favorites') return f.isFavorite;
         if (activeFolder === 'shared') return f.isShared;
-        return f.folder === activeFolder; // Mime categories: Documents, Images, etc.
+        return f.folder === activeFolder;
       });
 
-      // Filter category list by tag selection
       if (selectedTag !== 'All') {
         result = result.filter((f) => f.tags?.includes(selectedTag));
       }
     }
 
-    // Sort computations
     return result.sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
       if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
@@ -224,12 +210,27 @@ const Dashboard = () => {
     });
   };
 
-  const processedFiles = getProcessedFiles();
-  const recentFiles = [...files].filter(f => !f.isTrashed).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+  // FIX: recentFiles pehle compute karo, phir unhe processedFiles se exclude karo
+  const recentFiles = [...files]
+    .filter(f => !f.isTrashed)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
+
+  const recentFileIds = new Set(recentFiles.map(f => f._id));
+
+  const processedFiles = (() => {
+    const all = getProcessedFiles();
+    // FIX: Root 'all' view mein Recently Uploaded section visible hota hai
+    // isliye wahi files processedFiles se hata do — duplicate nahi aayega
+    if (activeFolder === 'all' && currentFolderId === null && search === '') {
+      return all.filter(f => !recentFileIds.has(f._id));
+    }
+    return all;
+  })();
 
   // ── File action triggers ──────────────────────────────
   const handleDelete = () => {
-    loadAll(); // Re-trigger quota sizes and activities timeline
+    loadAll();
   };
 
   const handleUpdate = (updated) => {
@@ -249,10 +250,8 @@ const Dashboard = () => {
     Others: 'Others',
   };
 
-  // Sync state between sidebar navigations and folder structures
   const handleNavChange = (folderId) => {
     setActiveFolder(folderId);
-    // Reset custom directories when clicking non-'all' side links
     if (folderId !== 'all') {
       setCurrentFolderId(null);
       setFolderPath([]);
@@ -289,7 +288,6 @@ const Dashboard = () => {
               />
             </div>
             
-            {/* Google Gemini AI Search Switcher */}
             {activeFolder !== 'trash' && (
               <button 
                 className={`ai-search-toggle ${aiSearchActive ? 'active' : ''}`}
@@ -322,30 +320,10 @@ const Dashboard = () => {
         {/* Stats Cards */}
         {activeFolder !== 'trash' && (
           <section className="stats-row">
-            <StatsCard
-              icon={<Files size={22} />}
-              label="Total Files"
-              value={stats?.totalFiles ?? '—'}
-              color="#6C63FF"
-            />
-            <StatsCard
-              icon={<HardDrive size={22} />}
-              label="Storage Used"
-              value={formatStorage(stats?.totalSize)}
-              color="#00C9A7"
-            />
-            <StatsCard
-              icon={<Star size={22} />}
-              label="Favorites"
-              value={stats?.favoriteCount ?? '—'}
-              color="#FFC75F"
-            />
-            <StatsCard
-              icon={<Share2 size={22} />}
-              label="Shared Files"
-              value={stats?.sharedCount ?? '—'}
-              color="#FF6B6B"
-            />
+            <StatsCard icon={<Files size={22} />} label="Total Files" value={stats?.totalFiles ?? '—'} color="#6C63FF" />
+            <StatsCard icon={<HardDrive size={22} />} label="Storage Used" value={formatStorage(stats?.totalSize)} color="#00C9A7" />
+            <StatsCard icon={<Star size={22} />} label="Favorites" value={stats?.favoriteCount ?? '—'} color="#FFC75F" />
+            <StatsCard icon={<Share2 size={22} />} label="Shared Files" value={stats?.sharedCount ?? '—'} color="#FF6B6B" />
           </section>
         )}
 
@@ -357,14 +335,13 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* Breadcrumb Navigation / Directory Header */}
+        {/* Breadcrumb Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <h3 className="section-title" style={{ marginBottom: 0 }}>
               {folderLabel[activeFolder] || activeFolder}
             </h3>
             
-            {/* Folder breadcrumbs */}
             {activeFolder === 'all' && (
               <div className="breadcrumbs" style={{ marginTop: '0.5rem', marginBottom: 0 }}>
                 <span className={`breadcrumb-item ${currentFolderId === null ? 'active' : ''}`} onClick={() => handleBreadcrumbClick(-1)}>
@@ -386,14 +363,12 @@ const Dashboard = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            {/* Create custom folder button */}
             {activeFolder === 'all' && (
               <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.85rem', fontSize: '0.85rem' }} onClick={() => setShowFolderModal(true)}>
                 <Plus size={16} /> New Folder
               </button>
             )}
 
-            {/* Sort Dropdown */}
             <div className="sort-dropdown">
               <ArrowUpDown size={14} style={{ marginRight: '0.5rem', color: 'var(--text-secondary)' }} />
               <select 
@@ -411,7 +386,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Tags filtering pillbar row */}
+        {/* Tags filtering pillbar */}
         {activeFolder !== 'trash' && (
           <div className="tags-row">
             {['All', 'Work', 'College', 'Personal'].map((tag) => (
@@ -426,7 +401,7 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Recycle Bin Notice Box */}
+        {/* Recycle Bin Notice */}
         {activeFolder === 'trash' && (
           <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.05)', border: '1px dashed var(--error)', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Trash2 size={16} color="var(--error)" />
@@ -462,7 +437,7 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* 2. Recently Uploaded Grid */}
+        {/* 2. Recently Uploaded — FIX: sirf wahi files jo processedFiles mein nahi hain */}
         {search === '' && activeFolder === 'all' && currentFolderId === null && recentFiles.length > 0 && (
           <section className="section-block">
             <h4 className="section-subtitle">Recently Uploaded</h4>
@@ -474,7 +449,7 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* 3. Main File list Section */}
+        {/* 3. Main File List — FIX: recentFiles excluded hain yahan se */}
         <section className="section-block">
           {activeFolder === 'all' && folders.length > 0 && <h4 className="section-subtitle">Files</h4>}
           {loading ? (
@@ -489,9 +464,11 @@ const Dashboard = () => {
                   ? 'Recycle Bin is empty.' 
                   : search 
                     ? `No files matched "${search}".` 
-                    : 'This folder is empty.'}
+                    : recentFiles.length > 0 && activeFolder === 'all' && currentFolderId === null
+                      ? 'All files shown above in Recently Uploaded.'
+                      : 'This folder is empty.'}
               </p>
-              {!search && activeFolder !== 'trash' && (
+              {!search && activeFolder !== 'trash' && !(recentFiles.length > 0 && activeFolder === 'all' && currentFolderId === null) && (
                 <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={() => setShowUpload(true)}>
                   Upload your first file
                 </button>
@@ -507,12 +484,12 @@ const Dashboard = () => {
         </section>
       </main>
 
-      {/* ── New Folder Creation Popover ─────────────────── */}
+      {/* New Folder Modal */}
       {showFolderModal && (
         <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
           <div className="modal-content modal-sm" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Create Folder</h3>
+              <h3 className="section-title">Create Folder</h3>
               <button className="modal-close" onClick={() => setShowFolderModal(false)}><X size={18} /></button>
             </div>
             <form onSubmit={handleCreateFolder}>
@@ -540,16 +517,16 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Upload files modal */}
+      {/* Upload Modal */}
       {showUpload && (
         <UploadModal
-          currentFolderId={currentFolderId} // binds uploads inside current directory!
+          currentFolderId={currentFolderId}
           onClose={() => setShowUpload(false)}
           onUploadSuccess={() => { setShowUpload(false); loadAll(); }}
         />
       )}
       
-      {/* Profile/Settings settings panel */}
+      {/* Profile Panel */}
       {showProfile && <ProfileSection onClose={() => setShowProfile(false)} />}
     </div>
   );
