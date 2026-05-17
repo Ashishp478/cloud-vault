@@ -24,7 +24,7 @@ const generateSummary = async (text) => {
   }
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
     const prompt = `
       You are an AI assistant for a secure cloud storage. Summarize the following text extracted from a PDF document in 3-5 concise, structured bullet points outlining the core content of the document. Keep it professional. Output only the bullet points (using bullet character •), nothing else.
 
@@ -49,7 +49,7 @@ const performOCR = async (imageBuffer, mimeType) => {
   }
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const imagePart = {
       inlineData: {
@@ -85,7 +85,7 @@ const semanticSearch = async (filesList, query) => {
 
   try {
     const model = ai.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       generationConfig: { responseMimeType: "application/json" }
     });
 
