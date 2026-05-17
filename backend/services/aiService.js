@@ -3,16 +3,19 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 let genAI = null;
 
 const getAIClient = () => {
+  console.log("Gemini key exists:", !!process.env.GEMINI_API_KEY);
+
   if (!process.env.GEMINI_API_KEY) {
-    console.warn('[AIService] WARNING: GEMINI_API_KEY is not defined in env. AI features will be disabled or mocked.');
+    console.warn('[AIService] WARNING: GEMINI_API_KEY is not defined');
     return null;
   }
+
   if (!genAI) {
     genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   }
+
   return genAI;
 };
-
 // ─── Summarize PDF text ──────────────────────────────────────────────────────
 const generateSummary = async (text) => {
   const ai = getAIClient();
@@ -121,5 +124,6 @@ const semanticSearch = async (filesList, query) => {
     return [];
   }
 };
+
 
 module.exports = { generateSummary, performOCR, semanticSearch };
