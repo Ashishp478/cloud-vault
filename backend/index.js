@@ -45,7 +45,7 @@ app.use((err,req,res,next)=>{
 });
 
 // Debug
-console.log("Gemini Key Exists:", !!process.env.GEMINI_API_KEY);
+//console.log("Gemini Key Exists:", !!process.env.GEMINI_API_KEY);
 
 const PORT = process.env.PORT || 5000;
 
