@@ -16,6 +16,7 @@ const getAIClient = () => {
 
   return genAI;
 };
+
 // ─── Summarize PDF text ──────────────────────────────────────────────────────
 const generateSummary = async (text) => {
   const ai = getAIClient();
@@ -24,12 +25,12 @@ const generateSummary = async (text) => {
   }
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' }); // FIX: updated from deprecated gemini-1.5-flash-latest
     const prompt = `
       You are an AI assistant for a secure cloud storage. Summarize the following text extracted from a PDF document in 3-5 concise, structured bullet points outlining the core content of the document. Keep it professional. Output only the bullet points (using bullet character •), nothing else.
 
       Document Text:
-      ${text.slice(0, 15000)}  // limit input to avoid excessive tokens
+      ${text.slice(0, 15000)}
     `;
 
     const result = await model.generateContent(prompt);
@@ -49,7 +50,7 @@ const performOCR = async (imageBuffer, mimeType) => {
   }
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' }); // FIX: updated from deprecated gemini-1.5-flash-latest
 
     const imagePart = {
       inlineData: {
@@ -68,24 +69,23 @@ const performOCR = async (imageBuffer, mimeType) => {
 
   } catch (err) {
     console.error("[AIService] OCR FULL ERROR:", err);
-
     throw new Error(
       "OCR text extraction failed: " +
       (err.message || JSON.stringify(err))
     );
   }
 };
-// ─── AI Semantic Search ─────────────────────────────────────────────────────
+
+// ─── AI Semantic Search ──────────────────────────────────────────────────────
 const semanticSearch = async (filesList, query) => {
   const ai = getAIClient();
   if (!ai) {
-    // If no AI client, fallback to empty array or we will filter in controllers
     return [];
   }
 
   try {
-    const model = ai.getGenerativeModel({ 
-      model: 'gemini-1.5-flash-latest',
+    const model = ai.getGenerativeModel({
+      model: 'gemini-2.0-flash', // FIX: updated from deprecated gemini-1.5-flash-latest
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -113,14 +113,12 @@ const semanticSearch = async (filesList, query) => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const jsonText = response.text().trim();
-    
-    // Parse the JSON array returned by Gemini
+
     try {
       const matchedIds = JSON.parse(jsonText);
       return Array.isArray(matchedIds) ? matchedIds : [];
     } catch (parseErr) {
       console.error('[AIService] Error parsing Gemini search JSON response:', parseErr.message, 'Raw response:', jsonText);
-      // fallback: try regex matching on IDs
       const matches = jsonText.match(/[0-9a-fA-F]{24}/g);
       return matches ? [...new Set(matches)] : [];
     }
@@ -129,6 +127,5 @@ const semanticSearch = async (filesList, query) => {
     return [];
   }
 };
-
 
 module.exports = { generateSummary, performOCR, semanticSearch };
