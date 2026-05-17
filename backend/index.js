@@ -4,18 +4,20 @@ const connectDB = require('./config/db');
 
 // Load env vars
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env'), override: true }); // Root level .env
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+  override: true
+});
 
-// Connect to database
+// Connect DB
 connectDB();
 
 const authRoutes = require('./routes/authRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const folderRoutes = require('./routes/folderRoutes');
 
-const app = express();
+const app = express();   // ← missing tha
 
-// Middleware
 // Middleware
 app.use(
   cors({
@@ -23,19 +25,19 @@ app.use(
       "http://cloudvault-storage-ashish28.s3-website.eu-north-1.amazonaws.com",
       "http://localhost:5173"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
     credentials: true
   })
 );
 
-app.use(express.json());
+app.use(express.json()); // ← missing tha
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
 
-// Error Handling Middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Server Error' });
