@@ -21,7 +21,7 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:5000/api
+        - VITE_API_URL=https://cloud-vault-9bfj.onrender.com/api
     ports:
       - "5173:80"
     depends_on:
