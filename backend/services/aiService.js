@@ -50,7 +50,7 @@ const performOCR = async (imageBuffer, mimeType) => {
 
   try {
     const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    
+
     const imagePart = {
       inlineData: {
         data: imageBuffer.toString('base64'),
@@ -60,16 +60,21 @@ const performOCR = async (imageBuffer, mimeType) => {
 
     const result = await model.generateContent([
       imagePart,
-      'You are an expert OCR engine. Extract and transcribe all readable text from this image exactly as it appears. Do not explain, interpret, or add any conversational text. Return only the extracted text, exactly as written.',
+      'You are an expert OCR engine. Extract and transcribe all readable text from this image exactly as it appears.',
     ]);
+
     const response = await result.response;
     return response.text().trim() || 'No text detected in image.';
+
   } catch (err) {
-    console.error('[AIService] OCR failed:', err.message);
-    throw new Error('OCR text extraction failed: ' + err.message);
+    console.error("[AIService] OCR FULL ERROR:", err);
+
+    throw new Error(
+      "OCR text extraction failed: " +
+      (err.message || JSON.stringify(err))
+    );
   }
 };
-
 // ─── AI Semantic Search ─────────────────────────────────────────────────────
 const semanticSearch = async (filesList, query) => {
   const ai = getAIClient();
