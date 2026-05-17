@@ -2,21 +2,17 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
-// Load env vars
-const path = require('path');
-require('dotenv').config({
-  path: path.resolve(__dirname, '../.env'),
-  override: true
-});
-
-// Connect DB
-connectDB();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 const authRoutes = require('./routes/authRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const folderRoutes = require('./routes/folderRoutes');
 
-const app = express();   // ← missing tha
+const app = express();
+
+connectDB();
 
 // Middleware
 app.use(
@@ -25,12 +21,17 @@ app.use(
       "http://cloudvault-storage-ashish28.s3-website.eu-north-1.amazonaws.com",
       "http://localhost:5173"
     ],
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
   })
 );
 
-app.use(express.json()); // ← missing tha
+app.use(express.json());
+
+// Health route (testing)
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
