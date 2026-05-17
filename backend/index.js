@@ -16,7 +16,18 @@ const folderRoutes = require('./routes/folderRoutes');
 const app = express();
 
 // Middleware
-app.use(cors());
+// Middleware
+app.use(
+  cors({
+    origin: [
+      "http://cloudvault-storage-ashish28.s3-website.eu-north-1.amazonaws.com",
+      "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
+  })
+);
+
 app.use(express.json());
 
 // Routes
