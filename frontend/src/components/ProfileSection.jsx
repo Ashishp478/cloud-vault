@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 const ProfileSection = ({ onClose }) => {
   const [profile, setProfile] = useState(null);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
@@ -40,18 +41,23 @@ const ProfileSection = ({ onClose }) => {
 
   const handlePassword = async (e) => {
     e.preventDefault();
+    if (!currentPassword) {
+      addToast('Current password is required', 'error');
+      return;
+    }
     if (!password || password !== confirm) {
-      addToast('Passwords do not match', 'error');
+      addToast(password !== confirm ? 'Passwords do not match' : 'New password is required', 'error');
       return;
     }
     setSaving(true);
     try {
-      await updatePassword(password);
+      await updatePassword(currentPassword, password);
       addToast('Password updated successfully!', 'success');
+      setCurrentPassword('');
       setPassword('');
       setConfirm('');
-    } catch {
-      addToast('Failed to update password', 'error');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to update password', 'error');
     }
     setSaving(false);
   };
@@ -194,6 +200,17 @@ const ProfileSection = ({ onClose }) => {
             <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Update Password</h4>
           </div>
           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <label className="input-label">Current Password</label>
+            <input
+              type="password"
+              className="form-input"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              required
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
             <label className="input-label">New Password</label>
             <input
               type="password"
@@ -201,6 +218,7 @@ const ProfileSection = ({ onClose }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter new password"
+              required
             />
           </div>
           <div className="form-group" style={{ marginBottom: '1.25rem' }}>
@@ -211,6 +229,7 @@ const ProfileSection = ({ onClose }) => {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Confirm new password"
+              required
             />
           </div>
           <button className="btn btn-primary w-full" type="submit" disabled={saving}>

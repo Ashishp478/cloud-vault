@@ -471,6 +471,16 @@ const downloadFile = async (req, res) => {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
+    if (req.query.stream === 'true') {
+      const command = new GetObjectCommand({ Bucket: BUCKET, Key: file.s3Key });
+      const response = await s3.send(command);
+      const buffer = await streamToBuffer(response.Body);
+      res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+      await logActivity(req.user._id, 'Download', file.originalName);
+      return res.send(buffer);
+    }
+
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({ Bucket: BUCKET, Key: file.s3Key }),
@@ -500,6 +510,16 @@ const downloadVersionFile = async (req, res) => {
     const versionMatch = file.versions.find(v => v.s3Key === versionKey);
     if (!versionMatch && file.s3Key !== versionKey) {
       return res.status(404).json({ message: 'Specified version not found in history' });
+    }
+
+    if (req.query.stream === 'true') {
+      const command = new GetObjectCommand({ Bucket: BUCKET, Key: versionKey });
+      const response = await s3.send(command);
+      const buffer = await streamToBuffer(response.Body);
+      res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+      await logActivity(req.user._id, 'Download', `${file.originalName} (Historical Version)`);
+      return res.send(buffer);
     }
 
     const url = await getSignedUrl(

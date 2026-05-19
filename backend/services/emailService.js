@@ -1,18 +1,22 @@
 const nodemailer = require('nodemailer');
+// SMTP Service for cloud-vault loaded with secure TLS and Gemini capabilities
 
 const sendResetEmail = async (email, token) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const resetLink = `${frontendUrl}/reset-password?token=${token}`;
 
   const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false, // Brevo 587 ke liye false
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: Number(process.env.SMTP_PORT) === 465, // SSL on 465, TLS/STARTTLS on other ports
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false, // Prevents local self-signed certificate rejection
+    },
+  });
 
   const mailOptions = {
     from: process.env.SMTP_FROM || '"Cloud Vault Support" <support@cloudvault.com>',

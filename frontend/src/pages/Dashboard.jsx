@@ -18,6 +18,8 @@ import StatsCard from '../components/StatsCard';
 import FileItem from '../components/FileItem';
 import UploadModal from '../components/UploadModal';
 import FileTypePieChart from '../components/FileTypePieChart';
+import StorageAllocationBarChart from '../components/StorageAllocationBarChart';
+import UploadTrendLineChart from '../components/UploadTrendLineChart';
 import ActivityTimeline from '../components/ActivityTimeline';
 import ProfileSection from '../components/ProfileSection';
 
@@ -329,10 +331,16 @@ const Dashboard = () => {
 
         {/* Charts & Timeline row */}
         {activeFolder !== 'trash' && search === '' && (
-          <section className="charts-row">
-            <FileTypePieChart typeStats={stats?.typeStats || []} />
-            <ActivityTimeline activities={activities} />
-          </section>
+          <>
+            <section className="charts-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <FileTypePieChart typeStats={stats?.typeStats || []} />
+              <StorageAllocationBarChart typeStats={stats?.typeStats || []} />
+            </section>
+            <section className="charts-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+              <UploadTrendLineChart files={files} />
+              <ActivityTimeline activities={activities} />
+            </section>
+          </>
         )}
 
         {/* Breadcrumb Navigation */}

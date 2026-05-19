@@ -211,17 +211,12 @@ const FileItem = ({ file, onDelete, onUpdate }) => {
 
     setDecrypting(true);
     try {
-      let downloadUrl = '';
+      let res;
       if (pendingAction === 'verDownload') {
-        const { data } = await downloadVersion(file._id, pendingVerKey);
-        downloadUrl = data.url;
+        res = await downloadVersion(file._id, pendingVerKey, true);
       } else {
-        const { data } = await downloadFile(file._id);
-        downloadUrl = data.url;
+        res = await downloadFile(file._id, true);
       }
-
-      // 1. Fetch raw binary blob from AWS S3 (pre-signed URL)
-      const res = await axios.get(downloadUrl, { responseType: 'blob' });
 
       // 2. Decrypt locally in browser
       const decryptedBlob = await decryptFileInBrowser(res.data, decryptPassphrase);

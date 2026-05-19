@@ -2,9 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
+const fs = require('fs');
 const path = require('path');
+
+let envPath = path.resolve(__dirname, '../.env');
+if (!fs.existsSync(envPath)) {
+  envPath = path.resolve(__dirname, '../../.env');
+}
+
 require('dotenv').config({
-  path: path.resolve(__dirname, '../.env'),
+  path: envPath,
   override: true
 });
 
